@@ -1,6 +1,7 @@
 package cs445.rec4;
 
 import java.lang.UnsupportedOperationException;
+import java.util.EmptyStackException;
 
 /**
  * A class that implements the Bag ADT with undo/redo
@@ -10,8 +11,11 @@ import java.lang.UnsupportedOperationException;
  */
 
 public class UndoableBag<E> extends ArrayBag<E> {
-    // TODO Create two stack reference variables called undoStack and redoStack
-
+    // TODO Create two stack reference variables called undoStack and redoStack ///////////////////////////////////////////////////////////////////////////////
+    LinkedStack<Action<E>> undoStack;
+    LinkedStack<Action<E>> redoStack;
+    final private static char insert = 'i'; 
+    final private static char remove = 'r';
     /**
      * Creates an empty bag with default capacity.
      */
@@ -33,7 +37,8 @@ public class UndoableBag<E> extends ArrayBag<E> {
         // use ArrayBag add method
         boolean result = super.add(newEntry);
 
-        // TODO keep track of added entry for undo operations
+        // TODO keep track of added entry for undo operations / ///////////////////////////////////////////////////////////////////////////////////////////
+        undoStack.push(new Action(insert, newEntry));
 
         return result;
     }
@@ -48,8 +53,8 @@ public class UndoableBag<E> extends ArrayBag<E> {
         // Call ArrayBag remove method
         E removedItem = super.remove();
 
-        // TODO keep track of the item removed for later undo operations
-
+        // TODO keep track of the item removed for later undo operations ///////////////////////////////////////////////////////////////////////////// 
+        undoStack.push(new Action(remove, removedItem));
         return removedItem;
     }
 
@@ -63,8 +68,8 @@ public class UndoableBag<E> extends ArrayBag<E> {
         // Call ArrayBag remove method
         boolean result = super.remove(anEntry);
 
-        // TODO keep track of the item removed for later undo operations
-
+        // TODO keep track of the item removed for later undo operations / ///////////////////////////////////////////////////////////////////////
+        undoStack.push(new Action(remove, anEntry));
         return result;
     }
 
@@ -83,9 +88,27 @@ public class UndoableBag<E> extends ArrayBag<E> {
      * @return True if the undo was successful, or false if there was nothing to undo.
      */
     public boolean undo() {
-        // TODO implement the undo method (including fixing the return value)
+        // TODO implement the undo method (including fixing the return value) //////////////////////////////////////////////////////////////////
+        if(undoStack.isEmpty()) throw new EmptyStackException();
+        Action<E> actionObject = undoStack.pop();
+        E value = actionObject.getData();
+        char actionChar = actionObject.getAction();
+        
+        switch(actionChar){
+            case insert: 
+                remove(value);
+                redoStack.push(new Action(remove, value));
+                break;
+            case remove: 
+                add(value);
+                redoStack.push(new Action(insert, value));
+                break;
+            default: 
+                return false;
+        }
 
-        return false;
+
+        return true;
     }
 
     /**
@@ -93,9 +116,25 @@ public class UndoableBag<E> extends ArrayBag<E> {
      * @return True if the redo was successful, or false if there was nothing to redo.
      */
     public boolean redo() {
-        // TODO implement the redo method (including fixing the return value)
+        // TODO implement the redo method (including fixing the return value)/ //////////////////////////////////////////////////////////////////
+        if(redoStack.isEmpty()) throw new EmptyStackException();
+        Action<E> actionObject = redoStack.pop();
+        char actionChar = actionObject.getAction();
+        E value = actionObject.getData();
+        switch(actionChar){
 
-        return false;
+            case insert: 
+                remove(value);
+                undoStack.push(new Action(remove, value));
+                break;
+            case remove: 
+                add(value);
+                undoStack.push(new Action(insert, value));
+                break;
+            default: 
+                return false;
+        }
+        return true;
     }
 
 }
